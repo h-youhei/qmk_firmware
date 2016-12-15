@@ -11,6 +11,8 @@
 #include "process_unicode.h"
 #include "quantum.h"
 #include "rgbsps.h"
+#include "ps2_mouse.h"
+#include "ps2.h"
 #define COUNT(x) (sizeof (x) / sizeof (*(x)))
 
 // #define RGBLED_NUM 5
@@ -282,25 +284,25 @@ void led_layer_func(void) {
   rgbsps_set(LED_K, 15, 0, 15);
   rgbsps_set(LED_L, 15, 0, 15);
 
-  rgbsps_set(LED_U, 15, 0, 10);
-  rgbsps_set(LED_O, 15, 0, 10);
-  rgbsps_set(LED_COMM, 15, 0, 10);
-  rgbsps_set(LED_DOT, 15, 0, 10);
-  rgbsps_set(LED_SCLN, 15, 0, 10);
-  rgbsps_set(LED_P, 15, 0, 10);
+  rgbsps_set(LED_U, 15, 0, 0);
+  rgbsps_set(LED_O, 15, 0, 0);
+  rgbsps_set(LED_COMM, 15, 0, 0);
+  rgbsps_set(LED_DOT, 15, 0, 0);
+  rgbsps_set(LED_SCLN, 15, 0, 0);
+  rgbsps_set(LED_P, 15, 0, 0);
 
-  rgbsps_set(LED_Q, 10, 0, 15);
-  rgbsps_set(LED_W, 10, 0, 15);
-  rgbsps_set(LED_E, 10, 0, 15);
-  rgbsps_set(LED_R, 10, 0, 15);
-  rgbsps_set(LED_A, 10, 0, 15);
-  rgbsps_set(LED_S, 10, 0, 15);
-  rgbsps_set(LED_D, 10, 0, 15);
-  rgbsps_set(LED_F, 10, 0, 15);
-  rgbsps_set(LED_Z, 10, 0, 15);
-  rgbsps_set(LED_X, 10, 0, 15);
-  rgbsps_set(LED_C, 10, 0, 15);
-  rgbsps_set(LED_V, 10, 0, 15);
+  rgbsps_set(LED_Q, 0, 15, 0);
+  rgbsps_set(LED_W, 0, 15, 0);
+  rgbsps_set(LED_E, 0, 15, 0);
+  rgbsps_set(LED_R, 0, 15, 0);
+  rgbsps_set(LED_A, 0, 15, 0);
+  rgbsps_set(LED_S, 0, 15, 0);
+  rgbsps_set(LED_D, 0, 15, 0);
+  rgbsps_set(LED_F, 0, 15, 0);
+  rgbsps_set(LED_Z, 0, 15, 0);
+  rgbsps_set(LED_X, 0, 15, 0);
+  rgbsps_set(LED_C, 0, 15, 0);
+  rgbsps_set(LED_V, 0, 15, 0);
 
   rgbsps_send();
 }
@@ -361,7 +363,15 @@ void led_layer_num(void) {
 }
 
 void led_layer_emoji(void) {
-  rgbsps_setall(15, 15, 0);
+  for(uint8_t i = 0; i < COUNT(LED_ALNUM); i++) {
+    rgbsps_set(pgm_read_byte(&LED_ALNUM[i]), 15, 15, 0);
+  }
+  for(uint8_t i = 0; i < COUNT(LED_MODS); i++) {
+    rgbsps_set(pgm_read_byte(&LED_MODS[i]), 15, 15, 0);
+  }
+  for(uint8_t i = 0; i < COUNT(LED_FN); i++) {
+    rgbsps_set(pgm_read_byte(&LED_FN[i]), 15, 15, 0);
+  }
 
   rgbsps_set(LED_IND_FUNC, 0, 0, 0);
   rgbsps_set(LED_IND_NUM, 0, 0, 0);
@@ -723,3 +733,39 @@ void shutdown_user()
 }
 
 #endif
+
+
+void ps2_mouse_init_user() {
+    uint8_t rcv;
+
+    // set TrackPoint sensitivity
+    PS2_MOUSE_SEND(0xE2, "set trackpoint sensitivity: 0xE2");
+    PS2_MOUSE_SEND(0x81, "set trackpoint sensitivity: 0x81");
+    PS2_MOUSE_SEND(0x4A, "set trackpoint sensitivity: 0x4A");
+    PS2_MOUSE_SEND(0x49, "set trackpoint sensitivity: 0x59");
+
+    // set TrackPoint Negative Inertia factor
+    PS2_MOUSE_SEND(0xE2, "set negative inertia factor: 0xE2");
+    PS2_MOUSE_SEND(0x81, "set negative inertia factor: 0x81");
+    PS2_MOUSE_SEND(0x4D, "set negative inertia factor: 0x4D");
+    PS2_MOUSE_SEND(0x06, "set negative inertia factor: 0x06");
+
+    // set TrackPoint speed
+    // (transfer function upper plateau speed)
+    PS2_MOUSE_SEND(0xE2, "set trackpoint speed: 0xE2");
+    PS2_MOUSE_SEND(0x81, "set trackpoint speed: 0x81");
+    PS2_MOUSE_SEND(0x60, "set trackpoint speed: 0x60");
+    PS2_MOUSE_SEND(0x61, "set trackpoint speed: 0x61");
+
+    // inquire pts status
+    rcv = ps2_host_send(0xE2);
+    rcv = ps2_host_send(0x2C);
+    rcv = ps2_host_recv_response();
+    if ((rcv & 1) == 1) {
+      // if on, disable pts
+      rcv = ps2_host_send(0xE2);
+      rcv = ps2_host_send(0x47);
+      rcv = ps2_host_send(0x2C);
+      rcv = ps2_host_send(0x01);
+    }
+}
